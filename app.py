@@ -48,7 +48,7 @@ dados_demanda_default = pd.DataFrame({
 
 df_demanda = st.data_editor(dados_demanda_default, num_rows="dynamic", use_container_width=True)
 
-# --- FUNÇÕES DE CÁLCULO (Lógica do Backend) ---
+# --- FUNÇÕES DE CÁLCULO ---
 
 def calcular_venda_esperada(capacidade, mu, sigma):
     if sigma == 0:
@@ -59,18 +59,15 @@ def calcular_venda_esperada(capacidade, mu, sigma):
     return term1 + term2
 
 def resolver_dp(anos_df, opcoes_dict, tma, lucro_un, cap_init):
-    # Dicionário de Demandas indexado por Ano
     demanda_dict = anos_df.set_index('Ano').to_dict('index')
     max_ano = anos_df['Ano'].max()
     
-    # Espaço de estados (Heurística: Cap Inicial até Máxima Demanda + Margem)
     max_demanda = anos_df['Media'].max() + 2 * anos_df['StdDev'].max()
-    passo_cap = 50000 # Simplificação para performance
+    passo_cap = 50000 
     estados_possiveis = [cap_init + i * passo_cap for i in range(int((max_demanda - cap_init)/passo_cap) + 5)]
     
     memo = {}
 
-    # Backward Induction
     for ano in range(max_ano, 0, -1):
         memo[ano] = {}
         mu = demanda_dict[ano]['Media']
@@ -86,10 +83,7 @@ def resolver_dp(anos_df, opcoes_dict, tma, lucro_un, cap_init):
             for expansao, investimento in opcoes_dict.items():
                 cap_proximo = cap_atual + expansao
                 
-                # Valor Futuro
                 if ano == max_ano:
-                    # Perpetuidade (Ano 11+)
-                    # Usa parametros do ultimo ano para estabilidade
                     vendas_term = calcular_venda_esperada(cap_proximo, mu, sigma)
                     fluxo_perpetuo = vendas_term * lucro_un
                     valor_futuro = fluxo_perpetuo / tma
@@ -97,8 +91,7 @@ def resolver_dp(anos_df, opcoes_dict, tma, lucro_un, cap_init):
                     if cap_proximo in memo[ano+1]:
                         valor_futuro = memo[ano+1][cap_proximo][0]
                     else:
-                        valor_futuro = 0 # Penalidade por sair do grid
-                
+                        valor_futuro = 0 
                 
                 vpl_decisao = fluxo_operacional - investimento + (valor_futuro / (1 + tma))
                 
@@ -146,41 +139,37 @@ def reconstruir_plano(memo, cap_init, max_ano, opcoes_dict, demanda_df, lucro_un
 if st.button("Calcular Plano Ótimo", type="primary"):
     with st.spinner('Otimizando trajetórias...'):
         try:
-            # 1. Resolver DP
+            # 1. Cálculos
             memo_table = resolver_dp(df_demanda, opcoes_expansao, tma, lucro_unit, cap_inicial)
-            
-            # 2. Obter VPL Total
             vpl_total = memo_table[1][cap_inicial][0]
-            
-            # 3. Reconstruir Caminho
             df_resultado = reconstruir_plano(memo_table, cap_inicial, df_demanda['Ano'].max(), opcoes_expansao, df_demanda, lucro_unit)
             
-            # --- EXIBIÇÃO ---
+            # 2. Exibição (Layout Corrigido)
             st.success("Cálculo realizado com sucesso!")
             
-            col1, col2 = st.columns([1, 3])
+            st.markdown("### Resultados Financeiros")
             
-            with col1:
-                st.metric(label="Valor da Empresa (VPL)", value=f"US$ {vpl_total:,.2f}")
+            # Exibe o KPI em destaque, ocupando largura suficiente
+            st.metric(label="Valor da Empresa (VPL)", value=f"US$ {vpl_total:,.2f}")
                 
-            with col2:
-                st.subheader("Plano de Expansão Detalhado")
-                st.dataframe(df_resultado.style.format({
-                    "Capacidade Atual": "{:,.0f}",
-                    "Demanda Média": "{:,.0f}",
-                    "Decisão (Expansão)": "{:,.0f}",
-                    "Investimento": "US$ {:,.0f}",
-                    "Receita Esperada": "US$ {:,.0f}",
-                    "Fluxo Líquido": "US$ {:,.0f}",
-                    "Nova Capacidade (disp. próx ano)": "{:,.0f}"
-                }), use_container_width=True)
+            st.divider()
 
-            # --- GRÁFICO VISUAL ---
+            st.subheader("Plano de Expansão Detalhado")
+            st.dataframe(df_resultado.style.format({
+                "Capacidade Atual": "{:,.0f}",
+                "Demanda Média": "{:,.0f}",
+                "Decisão (Expansão)": "{:,.0f}",
+                "Investimento": "US$ {:,.0f}",
+                "Receita Esperada": "US$ {:,.0f}",
+                "Fluxo Líquido": "US$ {:,.0f}",
+                "Nova Capacidade (disp. próx ano)": "{:,.0f}"
+            }), use_container_width=True)
+
+            # 3. Gráfico
             st.subheader("Visualização Gráfica: Capacidade vs. Demanda")
             
             fig = go.Figure()
             
-            # Linha da Capacidade
             fig.add_trace(go.Scatter(
                 x=df_resultado['Ano'], 
                 y=df_resultado['Capacidade Atual'],
@@ -189,7 +178,6 @@ if st.button("Calcular Plano Ótimo", type="primary"):
                 line=dict(color='green', width=3)
             ))
             
-            # Linha da Demanda Média
             fig.add_trace(go.Scatter(
                 x=df_demanda['Ano'], 
                 y=df_demanda['Media'],
@@ -198,7 +186,6 @@ if st.button("Calcular Plano Ótimo", type="primary"):
                 line=dict(color='blue', dash='dash')
             ))
             
-            # Área de Incerteza da Demanda (Intervalo de Confiança)
             fig.add_trace(go.Scatter(
                 x=pd.concat([df_demanda['Ano'], df_demanda['Ano'][::-1]]),
                 y=pd.concat([df_demanda['Media'] + df_demanda['StdDev'], (df_demanda['Media'] - df_demanda['StdDev'])[::-1]]),
