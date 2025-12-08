@@ -12,7 +12,7 @@ st.set_page_config(layout="wide", page_title="Simulador Ciclo Motores S/A")
 st.title("Otimização de expansão de capacidade - Ciclo Motores S/A")
 st.markdown("""
 Esta aplicação utiliza **Programação Dinâmica Estocástica** para determinar o plano ótimo de expansão.
-O modelo implementa a **Linear Loss Function** para cálculo exato de vendas e inclui o **Ajuste de Meio de Período (Mid-Year Adjustment)** para a perpetuidade.
+O modelo implementa a **Linear Loss Function** para cálculo de vendas e inclui o **Ajuste de Meio de Período (Mid-Year Adjustment)** para a perpetuidade.
 """)
 
 # ==========================================
@@ -81,7 +81,7 @@ df_opcoes_default = pd.DataFrame({
 df_opcoes = st.sidebar.data_editor(df_opcoes_default, num_rows="dynamic", hide_index=True)
 opcoes_expansao = dict(zip(df_opcoes["Expansão"], df_opcoes["Investimento ($)"]))
 
-st.subheader("3. Previsão de Demanda Estocástica")
+st.subheader("3. Previsão de demanda estocástica")
 st.markdown("Defina a média (µ) e o desvio padrão (σ) da demanda para cada ano.")
 
 # Dados padrão do problema
