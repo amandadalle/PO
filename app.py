@@ -198,8 +198,8 @@ def reconstruir_plano(memo, cap_init, max_ano, opcoes_dict, demanda_df, lucro_un
 # 4. EXECUÇÃO E VISUALIZAÇÃO
 # ==========================================
 
-if st.button("Calcular Plano Ótimo", type="primary"):
-    with st.spinner('Executando Otimização Estocástica...'):
+if st.button("Calcular plano ótimo", type="primary"):
+    with st.spinner('Executando otimização estocástica...'):
         # 1. Resolução (Backward)
         memo_table = resolver_dp(df_demanda, opcoes_expansao, tma, lucro_unit, cap_inicial)
         vpl_total = memo_table[1][cap_inicial][0]
@@ -230,7 +230,7 @@ if st.button("Calcular Plano Ótimo", type="primary"):
         }), use_container_width=True)
 
         # 4. Gráfico de Trajetória
-        st.subheader("Evolução da Capacidade vs. Demanda")
+        st.subheader("Evolução da capacidade vs. demanda")
         fig = go.Figure()
 
         # Linha da Capacidade
